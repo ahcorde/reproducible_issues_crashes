@@ -1,5 +1,6 @@
 #include <chrono>
 #include <functional>
+#include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
@@ -23,27 +24,27 @@ public:
     this->declare_parameter("foo.second", 0);
     this->declare_parameter("foobar", false);
 
-    timer_ = this->create_wall_timer(
-      8ms, std::bind(&Geometry2Issue1::timer_callback, this));
 
     auto on_set_parameters =
         [](const std::vector<rclcpp::Parameter> & parameters) {
             rcl_interfaces::msg::SetParametersResult result;
-            result.successful = true;
+            result.successful = false;
+            for (auto parameter : parameters) {
+              std::cout << "param " << parameter.get_name() << std::endl;
+            }
             return result;
+
         };
 
     callback_handler = this->add_on_set_parameters_callback(on_set_parameters);
+    tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(this);
+    timer_ = this->create_wall_timer(
+      8ms, std::bind(&Geometry2Issue1::timer_callback, this));
   }
 
 private:
   void timer_callback()
   {
-    if (!tf_broadcaster_)
-    {
-        tf_broadcaster_ = std::make_shared<tf2_ros::TransformBroadcaster>(shared_from_this());
-    }
-
     std::vector<geometry_msgs::msg::TransformStamped> v_tf;
 
     for (int i = 0; i < 6; ++i)
